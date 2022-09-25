@@ -1,24 +1,17 @@
 import webbrowser
 import requests
-import win32api
-import threading
 from tkinter import *
-from PIL import Image,ImageTk
 import sqlite3
-# import imp
 from tkinter import ttk, messagebox
+import hashlib
 
-import mysql.connector
-from mysql.connector import Error
-from ttkthemes import ThemedTk
-__version__ = '1.1'
+__version__ = '1.2'
 __AppName__ = 'Permissions'
 __Owner__ = "Szép Szilveszter"
 global conn, curs
 data = None
-
-
 defaultperm= "member"
+salt = "5gz"
 
 #### FRONT #### FRONT #### FRONT #### FRONT #### FRONT #### FRONT #### FRONT ####
 
@@ -79,8 +72,9 @@ def regform():
     Label(register, background="#d3d5d2", font="{arial} 12 {}", text=data.lang_Permission+":").place(anchor="nw", relx=0.05, rely=0.70,
                                                                                     x=0, y=0)
     permission = StringVar(register)
-    permission.set(data.lang_Permission)
+    permission.set("member")
     permissions = OptionMenu(register, permission, data.lang_Member,data.lang_Admin)
+    permissions.config(state=DISABLED)
     permissions.place(anchor="nw", relx=0.50, rely=0.70, x=0, y=0)
 
     Button(register, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Register ,command=lambda:db_insertLocal(username,password,email,permission)).place(anchor="nw", relwidth=0.31, relx=0.50, rely=0.85, x=0, y=0)
@@ -110,7 +104,7 @@ def adminform():
     adminwindow = Tk()
 
     adminwindow.title(data.lang_Administration)
-    adminwindow.geometry("500x300")
+    adminwindow.geometry("530x300")
     adminwindow.configure(background="#d3d5d2", height=300, width=400)
     adminwindow.resizable(False, False)
 
@@ -118,7 +112,7 @@ def adminform():
            command=newuser_adminform).place(anchor="nw", relwidth=0.30, relx=0.10, rely=0.20, x=0, y=0)
 
     Button(adminwindow, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_UserPerms,
-           command=userpermsform).place(anchor="nw", relwidth=0.30,relx=0.10, rely=0.35, x=0, y=0)
+           command=users_permsmanageform).place(anchor="nw", relwidth=0.30,relx=0.10, rely=0.35, x=0, y=0)
 
     Button(adminwindow, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Users,
            command=users_manageform).place(anchor="nw", relwidth=0.30,relx=0.10, rely=0.50, x=0, y=0)
@@ -133,19 +127,23 @@ def adminform():
     Label(adminwindow, background="#d3d5d2", font="{arial} 12 {}", text=data.lang_UserDatas).place(anchor="nw", relx=0.55,
                                                                                        rely=0.05, x=0, y=0)
 
-    UserDatas = Frame(adminwindow, background="#C0C0C0", height=160, width=250).place(anchor="nw",relx=0.45, rely=0.20, x=0, y=0)
+    Frame(adminwindow, background="#C0C0C0", height=205, width=300).place(anchor="nw",relx=0.42, rely=0.20, x=0, y=0)
 
-    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Username+": "+username1).place(anchor="nw", relx=0.46,
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Username+": "+username1).place(anchor="nw", relx=0.43,
                                                                                        rely=0.25, x=0, y=0)
 
-    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Email+": "+emailaddress1).place(anchor="nw", relx=0.46,
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Email+": "+emailaddress1).place(anchor="nw", relx=0.43,
                                                                                        rely=0.40, x=0, y=0)
 
-    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Permission+": "+permission1).place(anchor="nw", relx=0.46,
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Permission+": "+permission1).place(anchor="nw", relx=0.43,
                                                                                        rely=0.55, x=0, y=0)
 
-    Label(adminwindow, background="#d3d5d2", font="{arial} 24 {}", text="Beta ver.: "+__version__).place(anchor="nw",
-                                                                                                        relx=0.15, rely=0.80, x=0, y=0)
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}",
+          text=f"{data.lang_Password}: ").place(anchor="nw", relx=0.43,
+                                                                rely=0.70, x=0, y=0)
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}",
+          text=f"{password1}").place(anchor="w", relx=0.43,
+                                                             rely=0.80, x=0, y=0)
 
     adminwindow.mainloop()
 def memberform():
@@ -154,15 +152,15 @@ def memberform():
     adminwindow = Tk()
 
     adminwindow.title(data.lang_MemberWindow)
-    adminwindow.geometry("500x300")
+    adminwindow.geometry("530x300")
     adminwindow.configure(background="#d3d5d2", height=300, width=400)
     adminwindow.resizable(False, False)
 
     Button(adminwindow, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_PassChange,
-           command=Password_change).place(anchor="nw", relwidth=0.30, relx=0.10, rely=0.20, x=0, y=0)
+           command=password_changeform).place(anchor="nw", relwidth=0.30, relx=0.10, rely=0.20, x=0, y=0)
 
     Button(adminwindow, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_EmailChange,
-           command=Email_change).place(anchor="nw", relwidth=0.30,relx=0.10, rely=0.35, x=0, y=0)
+           command=email_changeform).place(anchor="nw", relwidth=0.30,relx=0.10, rely=0.35, x=0, y=0)
 
     Button(adminwindow, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Users,
            command=users_manageform).place(anchor="nw", relwidth=0.30,relx=0.10, rely=0.50, x=0, y=0)
@@ -177,16 +175,22 @@ def memberform():
     Label(adminwindow, background="#d3d5d2", font="{arial} 12 {}", text=data.lang_UserDatas).place(anchor="nw", relx=0.55,
                                                                                        rely=0.05, x=0, y=0)
 
-    UserDatas = Frame(adminwindow, background="#C0C0C0", height=160, width=250).place(anchor="nw",relx=0.45, rely=0.20, x=0, y=0)
+    Frame(adminwindow, background="#C0C0C0", height=205, width=300).place(anchor="nw",relx=0.42, rely=0.20, x=0, y=0)
 
-    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Username+": "+username1).place(anchor="nw", relx=0.46,
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Username+": "+username1).place(anchor="nw", relx=0.43,
                                                                                        rely=0.25, x=0, y=0)
 
-    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Email+": "+emailaddress1).place(anchor="nw", relx=0.46,
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Email+": "+emailaddress1).place(anchor="nw", relx=0.43,
                                                                                        rely=0.40, x=0, y=0)
 
-    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Permission+": "+permission1).place(anchor="nw", relx=0.46,
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}", text=data.lang_Permission+": "+permission1).place(anchor="nw", relx=0.43,
                                                                                        rely=0.55, x=0, y=0)
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}",
+          text=f"{data.lang_Password}: ").place(anchor="nw", relx=0.43,
+                                                                rely=0.70, x=0, y=0)
+    Label(adminwindow, background="#C0C0C0", font="{arial} 12 {}",
+          text=f"{password1}").place(anchor="w", relx=0.43,
+                                                             rely=0.80, x=0, y=0)
 
     adminwindow.mainloop()
 
@@ -254,6 +258,95 @@ def users_manageform():
         Button(usertable, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_delete,
                command=lambda:delete_person(deluserentry) and db_query(table)).place(anchor="nw", relwidth=0.15, relx=0.80, rely=0.86, x=0, y=0)
         deluserentry.delete(0, 'end')
+def users_permsmanageform():
+    userpermstable = Toplevel(adminwindow)
+    userpermstable.title(data.lang_managingusers)
+    userpermstable.geometry('800x270')
+    userpermstable.configure(background="#d3d5d2", height=800, width=270)
+
+    Button(userpermstable, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Query, command=lambda:db_query(table)).place(anchor="nw",relwidth=0.15,relx=0.05, rely=0.86,x=0, y=0)
+    cols = (data.lang_Username, data.lang_Password, data.lang_Email, data.lang_Permission)
+    table = ttk.Treeview(userpermstable, columns=cols, show="headings")
+    for col in cols:
+        table.heading(col, text=col)
+    table.place(anchor="nw",relwidth=1,relx=0.0, rely=0.0,x=0, y=0)
+    userpermstable.resizable(False, False)
+    Label(userpermstable, background="#d3d5d2", font="{arial} 16 {}", text=data.lang_Username + ": ").place(
+        anchor="nw",
+        relx=0.25, rely=0.86, x=0, y=0)
+    userpermentry = Entry(userpermstable, font="{arial} 12 {}")
+    userpermentry.place(anchor="nw", relx=0.45, rely=0.865, x=0, y=0, relheight=0.1)
+    Button(userpermstable, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Apply,
+           command=lambda: Permission_change(userpermentry, permissionch) and db_query(table)).place(anchor="nw", relwidth=0.15, relx=0.83,
+                                                                                  rely=0.86, x=0, y=0)
+    userpermentry.delete(0, 'end')
+    permissionch = StringVar(userpermstable)
+    permissionch.set(data.lang_Permission)
+    permissionsch = OptionMenu(userpermstable, permissionch, data.lang_Member, data.lang_Admin)
+    permissionsch.place(anchor="nw", relx=0.70, rely=0.86, x=0, y=0)
+def password_changeform():
+    global passwordchangeform
+    passwordchangeform = Toplevel(adminwindow)
+
+    passwordchangeform.title(data.lang_PassChange)
+    passwordchangeform.geometry("300x150")
+    passwordchangeform.configure(background="#d3d5d2", height=300, width=400)
+    passwordchangeform.resizable(False, False)
+
+    Label(passwordchangeform, text=data.lang_PassChange, font="{Arial} 15 {bold}", foreground="#000000",
+          background="#d3d5d2").place(anchor="nw", rely=0.05, relx=0.03, x=0, y=0)
+    Label(passwordchangeform, background="#d3d5d2", font="{arial} 12 {}", text=f"{data.lang_OldPass}:").place(
+        anchor="nw", relx=0.05,
+        rely=0.25, x=0, y=0)
+    oldpass = Entry(passwordchangeform, show="*")
+    oldpass.place(anchor="nw", relx=0.50, rely=0.259, x=0, y=0)
+
+    Label(passwordchangeform, background="#d3d5d2", font="{arial} 12 {}", text=f"{data.lang_NewPass}:").place(
+        anchor="nw", relx=0.05,
+        rely=0.45, x=0, y=0)
+    newpass = Entry(passwordchangeform, show="*")
+    newpass.place(anchor="nw", relx=0.50, rely=0.459, x=0, y=0)
+
+
+    Button(passwordchangeform, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Apply,
+           command=lambda: Password_change(oldpass, newpass)).place(anchor="nw", relwidth=0.31, relx=0.55, rely=0.70, x=0, y=0)
+
+    Button(passwordchangeform, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Cancel,
+           command=lambda: passwordchangeform.destroy()).place(anchor="nw", relwidth=0.31, relx=0.15, rely=0.70, x=0, y=0)
+
+    passwordchangeform.mainloop()
+
+def email_changeform():
+    global emailchangeform
+    emailchangeform = Toplevel(adminwindow)
+
+    emailchangeform.title(data.lang_PassChange)
+    emailchangeform.geometry("300x130")
+    emailchangeform.configure(background="#d3d5d2", height=300, width=400)
+    emailchangeform.resizable(False, False)
+
+    Label(emailchangeform, text=data.lang_EmailChange, font="{Arial} 15 {bold}", foreground="#000000",
+          background="#d3d5d2").place(anchor="nw", rely=0.05, relx=0.03, x=0, y=0)
+    Label(emailchangeform, background="#d3d5d2", font="{arial} 12 {}", text=f"{data.lang_CurrentEmail}: {emailaddress1}").place(
+        anchor="nw", relx=0.05,
+        rely=0.25, x=0, y=0)
+
+
+    Label(emailchangeform, background="#d3d5d2", font="{arial} 12 {}", text=f"{data.lang_NewEmail}:").place(
+        anchor="nw", relx=0.05,
+        rely=0.45, x=0, y=0)
+    newemail = Entry(emailchangeform, show="*")
+    newemail.place(anchor="nw", relx=0.50, rely=0.459, x=0, y=0)
+
+
+    Button(emailchangeform, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Apply,
+           command=lambda: Email_change(newemail)).place(anchor="nw", relwidth=0.31, relx=0.55, rely=0.70, x=0, y=0)
+
+    Button(emailchangeform, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_Cancel,
+           command=lambda: emailchangeform.destroy()).place(anchor="nw", relwidth=0.31, relx=0.15, rely=0.70, x=0,
+                                                               y=0)
+
+    emailchangeform.mainloop()
 
 def about():
     about = Toplevel(login)
@@ -272,6 +365,11 @@ def db_create():
     curs = conn.cursor()
     curs.execute("CREATE TABLE IF NOT EXISTS users (user TEXT, password TEXT, email TEXT, permission TEXT)")
     print ("Sikeres csatlakozás a helyi adatbázishoz")
+def db_close():
+    if conn and curs:
+        curs.close()
+        conn.close()
+        print("MySQL kapcsolat bezárva")
 
 def regPage():
     login.destroy()
@@ -281,10 +379,13 @@ def loginPage():
     loginform()
 
 def db_insertLocal(user, password, email, permission):
+    global salt
     if permission.get() == data.lang_Admin:
         permissions = "admin"
     if permission.get() == data.lang_Member:
         permissions = "member"
+
+
     if not user.get() or not password.get() or not email.get():
         error=Tk()
         error.title(data.lang_Error)
@@ -295,8 +396,12 @@ def db_insertLocal(user, password, email, permission):
               text=data.lang_errorMiss).pack()
 
         return
-    curs.execute("INSERT INTO users VALUES (?,?, ?, ?)", (user.get(), password.get(),
-                                                                       email.get(), permissions))
+
+    dataBase_password = password.get() + salt
+    hashedpw = hashlib.md5(dataBase_password.encode()).hexdigest()
+
+    curs.execute("INSERT INTO users VALUES (?,?, ?, ?)", (user.get(), hashedpw,
+                                                                       email.get(), permission.get()))
     conn.commit()
     loginPage()
 
@@ -313,15 +418,17 @@ def logindata(username, password):
 
         return
 
+    dataBase_password = password.get() + salt
+    hashedpwl = hashlib.md5(dataBase_password.encode()).hexdigest()
     username = username.get()
-    password = password.get()
+    password = hashedpwl
     username1 = username
     password1 = password
     statement = f"SELECT user from users WHERE user='{username}' AND password = '{password}';"
     curs.execute(statement)
     if not curs.fetchone():  # An empty result evaluates to False.
         error = Tk()
-        error.title("error")
+        error.title(data.lang_Error)
         error.resizable(False, False)
         error.geometry('200x50')
         error.configure(background="#d3d5d2", height=200, width=50)
@@ -331,8 +438,6 @@ def logindata(username, password):
         return
     else:
         loginsucces(username, password)
-        print(data.lang_Welcome +" "+ perms)
-
 def loginsucces(username, password):
     global perms, permission1, emailaddress1
     permiss = f"SELECT permission from users WHERE user='{username}' AND password = '{password}';"
@@ -359,13 +464,11 @@ def hungarian():
     langhu()
     loginform()
 
-
 def getVarFromFile(filename, langpack):
     import imp
     f = open(filename)
     global data
     data = imp.load_source('data', langpack, f)
-    print(data.lang_Welcome)
     f.close()
 def langen():
     getVarFromFile("data/en-US.txt", "data/en-US.txt")
@@ -373,11 +476,114 @@ def langhu():
     getVarFromFile("data/hu-HU.txt", "data/hu-HU.txt")
 
 def logout():
-    pass
-def Password_change():
-    pass
-def Email_change():
-    pass
+    adminwindow.destroy()
+    loginform()
+
+def Password_change(oldpass, newpass,):
+    if oldpass.get() and newpass.get():
+        if oldpass.get() == newpass.get():
+            error = Tk()
+            error.title(data.lang_Error)
+            error.resizable(False, False)
+            error.geometry('200x50')
+            error.configure(background="#d3d5d2", height=200, width=50)
+            Label(error, background="#d3d5d2",
+                  text=data.lang_ErrorPassSame).pack()
+            return
+        else:
+            dataBaseNew_password = newpass.get() + salt
+            hashedpwNew = hashlib.md5(dataBaseNew_password.encode()).hexdigest()
+            dataBase_password = oldpass.get() + salt
+            hashedpw = hashlib.md5(dataBase_password.encode()).hexdigest()
+            if password1 == hashedpw:
+                curs.execute("UPDATE users SET password=(?) WHERE user=(?)", [hashedpwNew, username1])
+                succes = Tk()
+                succes.title(data.lang_Succes)
+                succes.resizable(False, False)
+                succes.geometry('200x50')
+                succes.configure(background="#d3d5d2", height=200, width=50)
+                Label(succes, background="#d3d5d2",
+                      text=data.lang_SuccesChangePass).pack()
+                passwordchangeform.destroy()
+                adminwindow.destroy()
+            else:
+                error = Tk()
+                error.title(data.lang_Error)
+                error.resizable(False, False)
+                error.geometry('200x50')
+                error.configure(background="#d3d5d2", height=200, width=50)
+                Label(error, background="#d3d5d2",
+                      text=data.lang_BadPass).pack()
+                return
+    else:
+        error = Tk()
+        error.title(data.lang_Error)
+        error.resizable(False, False)
+        error.geometry('200x50')
+        error.configure(background="#d3d5d2", height=200, width=50)
+        Label(error, background="#d3d5d2",
+              text=data.lang_BadPass).pack()
+        return
+    conn.commit()
+def Email_change(newemail):
+    if newemail.get():
+        if newemail.get() == emailaddress1:
+            error = Tk()
+            error.title(data.lang_Error)
+            error.resizable(False, False)
+            error.geometry('200x50')
+            error.configure(background="#d3d5d2", height=200, width=50)
+            Label(error, background="#d3d5d2",
+                  text=data.lang_ErrorEmailSame).pack()
+            return
+        else:
+            curs.execute("UPDATE users SET email=(?) WHERE user=(?)", [newemail.get(), username1])
+            conn.commit()
+            succes = Tk()
+            succes.title(data.lang_Succes)
+            succes.resizable(False, False)
+            succes.geometry('200x50')
+            succes.configure(background="#d3d5d2", height=200, width=50)
+            Label(succes, background="#d3d5d2",
+                  text=data.lang_SuccesChangeEmail).pack()
+            emailchangeform.destroy()
+            adminwindow.destroy()
+    else:
+        error = Tk()
+        error.title(data.lang_Error)
+        error.resizable(False, False)
+        error.geometry('200x50')
+        error.configure(background="#d3d5d2", height=200, width=50)
+        Label(error, background="#d3d5d2",
+              text=data.lang_errorMiss).pack()
+        return
+def Permission_change(userpermentry, permissionch):
+    if userpermentry.get() and permissionch.get():
+        if permissionch.get() == data.lang_Permission:
+            error = Tk()
+            error.title(data.lang_Error)
+            error.resizable(False, False)
+            error.geometry('200x50')
+            error.configure(background="#d3d5d2", height=200, width=50)
+            Label(error, background="#d3d5d2",
+                  text=data.lang_ErrorChosePerm).pack()
+            return
+        else:
+            if permissionch.get() == data.lang_Admin:
+                permiss = "admin"
+            if permissionch.get() == data.lang_Member:
+                permiss = "member"
+            curs.execute("UPDATE users SET permission=(?) WHERE user=(?)", [permiss, userpermentry.get()])
+            conn.commit()
+    else:
+        error = Tk()
+        error.title(data.lang_Error)
+        error.resizable(False, False)
+        error.geometry('200x50')
+        error.configure(background="#d3d5d2", height=200, width=50)
+        Label(error, background="#d3d5d2",
+              text=data.lang_errorMiss).pack()
+        return
 def db_query(table):
     curs.execute("SELECT * FROM users")
     datas = curs.fetchall()
@@ -386,7 +592,6 @@ def db_query(table):
     for data in datas:
         table.insert("", "end", values=(data[0],data[1],data[2],data[3]))
         rowid += 1
-
 def delete_person(deluserentry):
 
     if not deluserentry.get():
@@ -405,7 +610,6 @@ def delete_person(deluserentry):
         deletecomm="DELETE FROM users WHERE user = (?) "
         curs.execute(deletecomm, (del_user_id,))
         conn.commit()
-
 def check_updates():
     try:
         response = requests.get(
@@ -428,7 +632,11 @@ def check_updates():
             messagebox.showinfo(data.lang_SoftwareUpdate, data.lang_NoUpdateAvailable)
     except Exception as e:
         messagebox.showinfo(data.lang_SoftwareUpdate, data.lang_UpdateError + str(e))
+
+
+#### BACK #### BACK #### BACK #### BACK #### BACK #### BACK #### BACK #### BACK ####
+
 db_create()
 langform()
-
+db_close()
 
