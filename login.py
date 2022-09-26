@@ -5,7 +5,7 @@ import sqlite3
 from tkinter import ttk, messagebox
 import hashlib
 
-__version__ = '1.2'
+__version__ = '1.3'
 __AppName__ = 'Permissions'
 __Owner__ = "Szép Szilveszter"
 global conn, curs
@@ -40,7 +40,7 @@ def loginform():
            command= regPage).place(anchor="nw", relwidth=0.31,relx=0.10, rely=0.65, x=0, y=0)
 
     Button(login, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_About,
-           command= about).place(anchor="nw", relwidth=0.31,relx=0.50, rely=0.10, x=0, y=0)
+           command= about).place(anchor="nw", relwidth=0.31,relx=0.60, rely=0.05, x=0, y=0)
 
     login.mainloop()
 def regform():
@@ -354,8 +354,82 @@ def about():
     about.title(data.lang_About)
     about.resizable(False, False)
     about.configure(background="#d3d5d2", height=200, width=200)
-    Label(about,background="#d3d5d2", text=data.lang_CreatedBy + "Szép Szilveszter\n" + __AppName__ + __version__ + "\n" + data.lang_Email + ": szep.code@gmail.com").pack()
+    Label(about,background="#d3d5d2", text=f"{data.lang_CreatedBy} {__Owner__}\n  {__AppName__}  {__version__}  \n  {data.lang_Email} : szep.code@gmail.com").pack()
     Button(about, background="#c6e1e1", font="{arial} 10 {}", text=data.lang_CheckUpdate, command=check_updates).place(anchor="nw", relwidth=0.60, relx=0.20, rely=0.60, x=0, y=0)
+
+def errorMissForm():
+    error = Tk()
+    error.title("error")
+    error.resizable(False, False)
+    error.geometry('200x50')
+    error.configure(background="#d3d5d2", height=200, width=50)
+    Label(error, background="#d3d5d2",
+          text=data.lang_errorMiss).pack()
+def errorLoginDataForm():
+    error = Tk()
+    error.title(data.lang_Error)
+    error.resizable(False, False)
+    error.geometry('200x50')
+    error.configure(background="#d3d5d2", height=200, width=50)
+    Label(error, background="#d3d5d2",
+          text=data.lang_errorLoginData).pack()
+def errorPassSameForm():
+    error = Tk()
+    error.title(data.lang_Error)
+    error.resizable(False, False)
+    error.geometry('200x50')
+    error.configure(background="#d3d5d2", height=200, width=50)
+    Label(error, background="#d3d5d2",
+          text=data.lang_ErrorPassSame).pack()
+def errorBadPassForm():
+    error = Tk()
+    error.title(data.lang_Error)
+    error.resizable(False, False)
+    error.geometry('200x50')
+    error.configure(background="#d3d5d2", height=200, width=50)
+    Label(error, background="#d3d5d2",
+          text=data.lang_BadPass).pack()
+def errorUsernameTakenForm():
+    error = Tk()
+    error.title(data.lang_Error)
+    error.resizable(False, False)
+    error.geometry('200x50')
+    error.configure(background="#d3d5d2", height=200, width=50)
+    Label(error, background="#d3d5d2",
+          text=data.lang_errorUsernameTaken).pack()
+def errorPasswordLessForm():
+    error = Tk()
+    error.title(data.lang_Error)
+    error.resizable(False, False)
+    error.geometry('200x50')
+    error.configure(background="#d3d5d2", height=200, width=50)
+    Label(error, background="#d3d5d2",
+          text=data.lang_errorPasswordLess).pack()
+def errorEmailTakenForm():
+    error = Tk()
+    error.title(data.lang_Error)
+    error.resizable(False, False)
+    error.geometry('200x50')
+    error.configure(background="#d3d5d2", height=200, width=50)
+    Label(error, background="#d3d5d2",
+          text=data.lang_errorEmailTaken).pack()
+def succesChangeEmailForm():
+    succes = Tk()
+    succes.title(data.lang_Succes)
+    succes.resizable(False, False)
+    succes.geometry('200x50')
+    succes.configure(background="#d3d5d2", height=200, width=50)
+    Label(succes, background="#d3d5d2",
+          text=data.lang_SuccesChangeEmail).pack()
+def succesChangePassForm():
+    succes = Tk()
+    succes.title(data.lang_Succes)
+    succes.resizable(False, False)
+    succes.geometry('200x50')
+    succes.configure(background="#d3d5d2", height=200, width=50)
+    Label(succes, background="#d3d5d2",
+          text=data.lang_SuccesChangePass).pack()
+
 #### FRONT #### FRONT #### FRONT #### FRONT #### FRONT #### FRONT #### FRONT ####
 
 #### BACK #### BACK #### BACK #### BACK #### BACK #### BACK #### BACK #### BACK ####
@@ -379,28 +453,37 @@ def loginPage():
     loginform()
 
 def db_insertLocal(user, password, email, permission):
+    passlen= len(password.get())
     global salt
     if permission.get() == data.lang_Admin:
         permissions = "admin"
     if permission.get() == data.lang_Member:
         permissions = "member"
 
-
     if not user.get() or not password.get() or not email.get():
-        error=Tk()
-        error.title(data.lang_Error)
-        error.resizable(False, False)
-        error.geometry('200x50')
-        error.configure(background="#d3d5d2", height=200, width=50)
-        Label(error, background="#d3d5d2",
-              text=data.lang_errorMiss).pack()
+        errorMissForm()
+        return
 
+    curs.execute("SELECT COUNT(*) FROM users WHERE user = (?)", (user.get(),)) #Search for an existing username.
+    usernamecheck = curs.fetchone() #Check for an existing username
+    if usernamecheck[0] != 0:
+        errorUsernameTakenForm()    #Error message
+        return
+
+    if passlen<8:   #The password must consist of at least 8 characters!
+        errorPasswordLessForm() #Error message
         return
 
     dataBase_password = password.get() + salt
     hashedpw = hashlib.md5(dataBase_password.encode()).hexdigest()
 
-    curs.execute("INSERT INTO users VALUES (?,?, ?, ?)", (user.get(), hashedpw,
+    curs.execute("SELECT COUNT(*) FROM users WHERE email = (?)", (email.get(),))  # Search for an existing username.
+    emailcheck = curs.fetchone()  # Check for an existing username
+    if emailcheck[0] != 0:
+        errorEmailTakenForm()  # Error message
+        return
+    else:
+        curs.execute("INSERT INTO users VALUES (?,?, ?, ?)", (user.get(), hashedpw,
                                                                        email.get(), permission.get()))
     conn.commit()
     loginPage()
@@ -408,14 +491,7 @@ def db_insertLocal(user, password, email, permission):
 def logindata(username, password):
     global username1, password1
     if not username.get() or not password.get():
-        error=Tk()
-        error.title("error")
-        error.resizable(False, False)
-        error.geometry('200x50')
-        error.configure(background="#d3d5d2", height=200, width=50)
-        Label(error, background="#d3d5d2",
-              text=data.lang_errorMiss).pack()
-
+        errorMissForm()
         return
 
     dataBase_password = password.get() + salt
@@ -427,14 +503,7 @@ def logindata(username, password):
     statement = f"SELECT user from users WHERE user='{username}' AND password = '{password}';"
     curs.execute(statement)
     if not curs.fetchone():  # An empty result evaluates to False.
-        error = Tk()
-        error.title(data.lang_Error)
-        error.resizable(False, False)
-        error.geometry('200x50')
-        error.configure(background="#d3d5d2", height=200, width=50)
-        Label(error, background="#d3d5d2",
-              text=data.lang_errorLoginData).pack()
-
+        errorLoginDataForm()
         return
     else:
         loginsucces(username, password)
@@ -482,13 +551,7 @@ def logout():
 def Password_change(oldpass, newpass,):
     if oldpass.get() and newpass.get():
         if oldpass.get() == newpass.get():
-            error = Tk()
-            error.title(data.lang_Error)
-            error.resizable(False, False)
-            error.geometry('200x50')
-            error.configure(background="#d3d5d2", height=200, width=50)
-            Label(error, background="#d3d5d2",
-                  text=data.lang_ErrorPassSame).pack()
+            errorPassSameForm()
             return
         else:
             dataBaseNew_password = newpass.get() + salt
@@ -497,32 +560,14 @@ def Password_change(oldpass, newpass,):
             hashedpw = hashlib.md5(dataBase_password.encode()).hexdigest()
             if password1 == hashedpw:
                 curs.execute("UPDATE users SET password=(?) WHERE user=(?)", [hashedpwNew, username1])
-                succes = Tk()
-                succes.title(data.lang_Succes)
-                succes.resizable(False, False)
-                succes.geometry('200x50')
-                succes.configure(background="#d3d5d2", height=200, width=50)
-                Label(succes, background="#d3d5d2",
-                      text=data.lang_SuccesChangePass).pack()
+                succesChangePassForm()
                 passwordchangeform.destroy()
                 adminwindow.destroy()
             else:
-                error = Tk()
-                error.title(data.lang_Error)
-                error.resizable(False, False)
-                error.geometry('200x50')
-                error.configure(background="#d3d5d2", height=200, width=50)
-                Label(error, background="#d3d5d2",
-                      text=data.lang_BadPass).pack()
+                errorBadPassForm()
                 return
     else:
-        error = Tk()
-        error.title(data.lang_Error)
-        error.resizable(False, False)
-        error.geometry('200x50')
-        error.configure(background="#d3d5d2", height=200, width=50)
-        Label(error, background="#d3d5d2",
-              text=data.lang_BadPass).pack()
+        errorBadPassForm()
         return
     conn.commit()
 def Email_change(newemail):
@@ -539,23 +584,11 @@ def Email_change(newemail):
         else:
             curs.execute("UPDATE users SET email=(?) WHERE user=(?)", [newemail.get(), username1])
             conn.commit()
-            succes = Tk()
-            succes.title(data.lang_Succes)
-            succes.resizable(False, False)
-            succes.geometry('200x50')
-            succes.configure(background="#d3d5d2", height=200, width=50)
-            Label(succes, background="#d3d5d2",
-                  text=data.lang_SuccesChangeEmail).pack()
+            succesChangeEmailForm()
             emailchangeform.destroy()
             adminwindow.destroy()
     else:
-        error = Tk()
-        error.title(data.lang_Error)
-        error.resizable(False, False)
-        error.geometry('200x50')
-        error.configure(background="#d3d5d2", height=200, width=50)
-        Label(error, background="#d3d5d2",
-              text=data.lang_errorMiss).pack()
+        errorMissForm()
         return
 def Permission_change(userpermentry, permissionch):
     if userpermentry.get() and permissionch.get():
@@ -576,13 +609,7 @@ def Permission_change(userpermentry, permissionch):
             curs.execute("UPDATE users SET permission=(?) WHERE user=(?)", [permiss, userpermentry.get()])
             conn.commit()
     else:
-        error = Tk()
-        error.title(data.lang_Error)
-        error.resizable(False, False)
-        error.geometry('200x50')
-        error.configure(background="#d3d5d2", height=200, width=50)
-        Label(error, background="#d3d5d2",
-              text=data.lang_errorMiss).pack()
+        errorMissForm()
         return
 def db_query(table):
     curs.execute("SELECT * FROM users")
@@ -613,17 +640,17 @@ def delete_person(deluserentry):
 def check_updates():
     try:
         response = requests.get(
-            'https://raw.githubusercontent.com/szepszilo/database/main/version.txt')
+            'https://raw.githubusercontent.com/szepszilo/perms/main/version.txt')
         verdatas = response.text
 
         if float(verdatas) > float(__version__):
             messagebox.showinfo(data.lang_SoftwareUpdate, data.lang_NewUpdateAvailable)
-            mb1 = messagebox.askyesno(data.lang_Update, f'{data.lang_AvailableVersion} {__AppName__} {__version__}{data.lang_AvailableVersionFORHU}\n{data.lang_Version} {verdatas}')
+            mb1 = messagebox.askyesno(data.lang_Update, f'{data.lang_AvailableVersion} {__AppName__} {__version__}{data.lang_AvailableVersionFORHU}\n{data.lang_Version} {verdatas} {data.AskOpen}')
             if mb1 is True:
                 # -- Replace the url for your file online with the one below.
                 # webbrowser.open_new_tab('https://raw.githubusercontent.com/szepszilo/database/main/'
                 #                         'update.msi?raw=true')
-                webbrowser.open_new_tab('https://github.com/szepszilo/database/')
+                webbrowser.open_new_tab('https://github.com/szepszilo/perms/')
 
                 #parent.destroy()
             else:
